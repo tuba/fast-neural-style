@@ -1,10 +1,16 @@
 # Fast neural style transfer
 
+A short writeup and example images are up on [my blog](http://olavnymoen.com/2016/07/07/image-transformation-network).
+
 In an attempt to learn Tensorflow I've implemented an Image Transformation Network as described in [Perceptual Losses for Real-Time Style Transfer and Super-Resolution](http://arxiv.org/abs/1603.08155) by Johnson et al.
 
 This technique uses loss functions based on a perceptual similarity and style similarity as described by [Gatys et al](http://arxiv.org/abs/1508.06576) to train a transformation network to synthesize the style of one image with the content of arbitrary images. After it's trained for a particular style it can be used to generate stylized images in one forward pass through the transformer network as opposed to 500-2000 forward + backward passes through a pretrained image classification net which is the direct approach.
 
 ### Usage
+
+First get the dependecies (COCO training set images and VGG model weights):
+
+`./get_files.sh`
 
 To generate an image directly from style and content, typically to explore styles and parameters:
 
@@ -26,17 +32,8 @@ To generate images fast with an already trained model:
 
 - Python3.x
 - [Tensorflow](https://www.tensorflow.org/versions/r0.8/get_started/os_setup.html)
-- [VGG-19 model](http://www.vlfeat.org/matconvnet/models/imagenet-vgg-verydeep-19.mat)
+- [VGG-19 model](http://www.vlfeat.org/matconvnet/models/beta16/imagenet-vgg-verydeep-19.mat)
 - [COCO dataset](http://msvocds.blob.core.windows.net/coco2014/train2014.zip)
-
-### TODO
-
-- Automatic download for VGG-19 model and COCO dataset.
-- Add a pretrained model
-- Add example pictures / videos
-- Resize when doing batch forward passes
-- Test and fix for python2.7
-- Add back tensorboard metrics
 
 ### Acknowledgement
 
