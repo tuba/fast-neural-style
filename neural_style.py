@@ -107,17 +107,18 @@ def main(argv=None):
 
     output_image = tf.image.encode_png(tf.saturate_cast(tf.squeeze(initial) + reader.mean_pixel, tf.uint8))
 
-    with tf.Session() as sess:
-        sess.run(tf.initialize_all_variables())
-        start_time = time.time()
-        for step in range(FLAGS.NUM_ITERATIONS):
-            _, loss_t = sess.run([train_op, total_loss])
-            elapsed = time.time() - start_time
+    with tf.device('/cpu:0'):
+        with tf.Session() as sess:
+            sess.run(tf.initialize_all_variables())
             start_time = time.time()
-            print(step, elapsed, loss_t)
-        image_t = sess.run(output_image)
-        with open('out.png', 'wb') as f:
-            f.write(image_t)
+            for step in range(FLAGS.NUM_ITERATIONS):
+                _, loss_t = sess.run([train_op, total_loss])
+                elapsed = time.time() - start_time
+                start_time = time.time()
+                print(step, elapsed, loss_t)
+            image_t = sess.run(output_image)
+            with open('out.png', 'wb') as f:
+                f.write(image_t)
 
 
 if __name__ == '__main__':
