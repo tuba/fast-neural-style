@@ -81,7 +81,7 @@ def main(argv=None):
     style_features_t = get_style_features(style_paths, style_layers)
     *content_features_t, image_t = get_content_features(content_path, content_layers)
 
-    with tf.device('/cpu:0'):
+    with tf.device('/gpu:0'):
         image = tf.constant(image_t)
         random = tf.random_normal(image_t.shape)
         initial = tf.Variable(random if FLAGS.RANDOM_INIT else image)
