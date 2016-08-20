@@ -10,13 +10,13 @@ tf.app.flags.DEFINE_integer("CONTENT_WEIGHT", 5e0, "Weight for content features 
 tf.app.flags.DEFINE_integer("STYLE_WEIGHT", 1e2, "Weight for style features loss")
 tf.app.flags.DEFINE_integer("TV_WEIGHT", 1e-5, "Weight for total variation loss")
 tf.app.flags.DEFINE_string("VGG_PATH", "imagenet-vgg-verydeep-19.mat",
-        "Path to vgg model weights")
+                           "Path to vgg model weights")
 tf.app.flags.DEFINE_string("MODEL_PATH", "models", "Path to read/write trained models")
 tf.app.flags.DEFINE_string("TRAIN_IMAGES_PATH", "train2014", "Path to training images")
 tf.app.flags.DEFINE_string("CONTENT_LAYERS", "relu4_2",
-        "Which VGG layer to extract content loss from")
+                           "Which VGG layer to extract content loss from")
 tf.app.flags.DEFINE_string("STYLE_LAYERS", "relu1_1,relu2_1,relu3_1,relu4_1,relu5_1",
-        "Which layers to extract style from")
+                           "Which layers to extract style from")
 tf.app.flags.DEFINE_string("SUMMARY_PATH", "tensorboard", "Path to store Tensorboard summaries")
 tf.app.flags.DEFINE_string("STYLE_IMAGES", "style.png", "Styles to train")
 tf.app.flags.DEFINE_float("STYLE_SCALE", 1.0, "Scale styles. Higher extracts smaller features")
@@ -26,13 +26,17 @@ tf.app.flags.DEFINE_integer("BATCH_SIZE", 1, "Number of concurrent images to tra
 
 FLAGS = tf.app.flags.FLAGS
 
+
 def total_variation_loss(layer):
     shape = tf.shape(layer)
     height = shape[1]
     width = shape[2]
-    y = tf.slice(layer, [0,0,0,0], tf.pack([-1,height-1,-1,-1])) - tf.slice(layer, [0,1,0,0], [-1,-1,-1,-1])
-    x = tf.slice(layer, [0,0,0,0], tf.pack([-1,-1,width-1,-1])) - tf.slice(layer, [0,0,1,0], [-1,-1,-1,-1])
+    y = tf.slice(layer, [0, 0, 0, 0], tf.pack([-1, height - 1, -1, -1])) - tf.slice(layer, [0, 1, 0, 0],
+                                                                                    [-1, -1, -1, -1])
+    x = tf.slice(layer, [0, 0, 0, 0], tf.pack([-1, -1, width - 1, -1])) - tf.slice(layer, [0, 0, 1, 0],
+                                                                                   [-1, -1, -1, -1])
     return tf.nn.l2_loss(x) / tf.to_float(tf.size(x)) + tf.nn.l2_loss(y) / tf.to_float(tf.size(y))
+
 
 # TODO: Figure out grams and batch sizes! Doesn't make sense ..
 def gram(layer):
@@ -44,6 +48,7 @@ def gram(layer):
     grams = tf.batch_matmul(filters, filters, adj_x=True) / tf.to_float(size / FLAGS.BATCH_SIZE)
 
     return grams
+
 
 def get_style_features(style_paths, style_layers):
     with tf.Graph().as_default() as g:
@@ -57,15 +62,16 @@ def get_style_features(style_paths, style_layers):
         with tf.Session() as sess:
             return sess.run(features)
 
+
 def main(argv=None):
     if FLAGS.CONTENT_IMAGES_PATH:
         content_images = reader.image(
-                FLAGS.BATCH_SIZE,
-                FLAGS.IMAGE_SIZE,
-                FLAGS.CONTENT_IMAGES_PATH,
-                epochs=1,
-                shuffle=False,
-                crop=False)
+            FLAGS.BATCH_SIZE,
+            FLAGS.IMAGE_SIZE,
+            FLAGS.CONTENT_IMAGES_PATH,
+            epochs=1,
+            shuffle=False,
+            crop=False)
         generated_images = model.net(content_images / 255.)
 
         output_format = tf.saturate_cast(generated_images + reader.mean_pixel, tf.uint8)
@@ -74,6 +80,7 @@ def main(argv=None):
             if not file:
                 print('Could not find trained model in {}'.format(FLAGS.MODEL_PATH))
                 return
+
             print('Using model from {}'.format(file))
             saver = tf.train.Saver()
             saver.restore(sess, file)
@@ -129,7 +136,8 @@ def main(argv=None):
             style_loss += tf.nn.l2_loss(tf.reduce_sum(gram(generated_images) - style_image, 0)) / tf.to_float(size)
     style_loss = style_loss / len(style_layers)
 
-    loss = FLAGS.STYLE_WEIGHT * style_loss + FLAGS.CONTENT_WEIGHT * content_loss + FLAGS.TV_WEIGHT * total_variation_loss(generated)
+    loss = FLAGS.STYLE_WEIGHT * style_loss + FLAGS.CONTENT_WEIGHT * content_loss + FLAGS.TV_WEIGHT * total_variation_loss(
+        generated)
 
     global_step = tf.Variable(0, name="global_step", trainable=False)
     train_op = tf.train.AdamOptimizer(1e-3).minimize(loss, global_step=global_step)
@@ -167,6 +175,7 @@ def main(argv=None):
             coord.request_stop()
 
         coord.join(threads)
+
 
 if __name__ == '__main__':
     tf.app.run()

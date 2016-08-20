@@ -7,11 +7,11 @@ tf.app.flags.DEFINE_integer("CONTENT_WEIGHT", 5e0, "Weight for content features 
 tf.app.flags.DEFINE_integer("STYLE_WEIGHT", 1e2, "Weight for style features loss")
 tf.app.flags.DEFINE_integer("TV_WEIGHT", 1e-5, "Weight for total variation loss")
 tf.app.flags.DEFINE_string("VGG_PATH", "imagenet-vgg-verydeep-19.mat",
-        "Path to vgg model weights")
+                           "Path to vgg model weights")
 tf.app.flags.DEFINE_string("CONTENT_LAYERS", "relu4_2",
-        "Which VGG layer to extract content loss from")
+                           "Which VGG layer to extract content loss from")
 tf.app.flags.DEFINE_string("STYLE_LAYERS", "relu1_1,relu2_1,relu3_1,relu4_1,relu5_1",
-        "Which layers to extract style from")
+                           "Which layers to extract style from")
 tf.app.flags.DEFINE_string("SUMMARY_PATH", "tensorboard", "Path to store Tensorboard summaries")
 tf.app.flags.DEFINE_string("STYLE_IMAGES", "style.png", "Styles to train")
 tf.app.flags.DEFINE_float("STYLE_SCALE", 1.0, "Scale styles. Higher extracts smaller features")
@@ -23,13 +23,17 @@ tf.app.flags.DEFINE_integer("IMAGE_SIZE", 256, "Size of output image")
 
 FLAGS = tf.app.flags.FLAGS
 
+
 def total_variation_loss(layer):
     shape = tf.shape(layer)
     height = shape[1]
     width = shape[2]
-    y = tf.slice(layer, [0,0,0,0], tf.pack([-1,height-1,-1,-1])) - tf.slice(layer, [0,1,0,0], [-1,-1,-1,-1])
-    x = tf.slice(layer, [0,0,0,0], tf.pack([-1,-1,width-1,-1])) - tf.slice(layer, [0,0,1,0], [-1,-1,-1,-1])
+    y = tf.slice(layer, [0, 0, 0, 0], tf.pack([-1, height - 1, -1, -1])) - tf.slice(layer, [0, 1, 0, 0],
+                                                                                    [-1, -1, -1, -1])
+    x = tf.slice(layer, [0, 0, 0, 0], tf.pack([-1, -1, width - 1, -1])) - tf.slice(layer, [0, 0, 1, 0],
+                                                                                   [-1, -1, -1, -1])
     return tf.nn.l2_loss(x) / tf.to_float(tf.size(x)) + tf.nn.l2_loss(y) / tf.to_float(tf.size(y))
+
 
 # TODO: Okay to flatten all style images into one gram?
 def gram(layer):
@@ -40,6 +44,7 @@ def gram(layer):
     gram = tf.matmul(filters, filters, transpose_a=True) / tf.to_float(size)
 
     return gram
+
 
 # TODO: Different style scales per image.
 def get_style_features(style_paths, style_layers):
@@ -54,6 +59,7 @@ def get_style_features(style_paths, style_layers):
         with tf.Session() as sess:
             return sess.run(features)
 
+
 def get_content_features(content_path, content_layers):
     with tf.Graph().as_default() as g:
         image = tf.expand_dims(reader.get_image(content_path, FLAGS.IMAGE_SIZE), 0)
@@ -64,6 +70,7 @@ def get_content_features(content_path, content_layers):
 
         with tf.Session() as sess:
             return sess.run(layers + [image])
+
 
 def main(argv=None):
     style_paths = FLAGS.STYLE_IMAGES.split(',')
@@ -111,6 +118,7 @@ def main(argv=None):
         image_t = sess.run(output_image)
         with open('out.png', 'wb') as f:
             f.write(image_t)
+
 
 if __name__ == '__main__':
     tf.app.run()
