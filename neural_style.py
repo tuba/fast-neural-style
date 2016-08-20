@@ -129,7 +129,7 @@ def main(argv=None):
             # print(step, elapsed, 'TL: ', loss_t, ', CL: ', loss_c, ', SL: ', loss_s, ', TVL: ', loss_tv)
 
             r_x, r_y = sess.run([x, y])
-            print('X=', x, ', Y=', y)
+            print('X=', r_x, ', Y=', r_y)
 
         image_t = sess.run(output_image)
         with open('out.png', 'wb') as f:
