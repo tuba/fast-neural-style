@@ -114,12 +114,12 @@ def main(argv=None):
             _, loss_t, loss_c, loss_s, loss_tv = sess.run([train_op, total_loss, content_loss, style_loss, tv_loss])
             elapsed = time.time() - start_time
             start_time = time.time()
-            print(step, elapsed, 'Total loss: ', loss_t, ', content loss: ', loss_c,
-                  ', style loss: ', style_loss, ', TV loss: ', tv_loss)
+            print(step, elapsed, 'TL: ', loss_t, ', CL: ', loss_c, ', SL: ', style_loss, ', TVL: ', tv_loss)
 
         image_t = sess.run(output_image)
         with open('out.png', 'wb') as f:
             f.write(image_t)
+
 
 if __name__ == '__main__':
     tf.app.run()
