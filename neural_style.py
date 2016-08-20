@@ -104,13 +104,13 @@ def main(argv=None):
     height = shape[1]
     width = shape[2]
 
-    y1_p = tf.pack([-1, height - 1, -1, -1])
-    y1 = tf.slice(initial, [0, 0, 0, 0], y1_p)
+    # y1_p = tf.pack([-1, height - 1, -1, -1])
+    y1 = tf.slice(initial, [0, 0, 0, 0], [-1, height - 1, -1, -1])
     y2 = tf.slice(initial, [0, 1, 0, 0], [-1, -1, -1, -1])
     y = y1 - y2
 
-    x1_p = tf.pack([-1, -1, width - 1, -1])
-    x1 = tf.slice(initial, [0, 0, 0, 0], x1_p)
+    # x1_p = tf.pack([-1, -1, width - 1, -1])
+    x1 = tf.slice(initial, [0, 0, 0, 0], [-1, -1, width - 1, -1])
     x2 = tf.slice(initial, [0, 0, 1, 0], [-1, -1, -1, -1])
     x = x1 - x2
 
@@ -135,8 +135,8 @@ def main(argv=None):
             start_time = time.time()
             # print(step, elapsed, 'TL: ', loss_t, ', CL: ', loss_c, ', SL: ', loss_s, ', TVL: ', loss_tv)
 
-            ry1p, rx1p = sess.run([x1_p, y1_p])
-            print('x1p=', rx1p, ', y1p=', ry1p)
+            ry1 = sess.run([y1])
+            print('y1=', ry1)
 
         image_t = sess.run(output_image)
         with open('out.png', 'wb') as f:
