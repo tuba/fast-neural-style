@@ -24,15 +24,15 @@ tf.app.flags.DEFINE_integer("IMAGE_SIZE", 256, "Size of output image")
 FLAGS = tf.app.flags.FLAGS
 
 
-def total_variation_loss(layer):
-    shape = tf.shape(layer)
-    height = shape[1]
-    width = shape[2]
-    y = tf.slice(layer, [0, 0, 0, 0], tf.pack([-1, height - 1, -1, -1])) - tf.slice(layer, [0, 1, 0, 0],
-                                                                                    [-1, -1, -1, -1])
-    x = tf.slice(layer, [0, 0, 0, 0], tf.pack([-1, -1, width - 1, -1])) - tf.slice(layer, [0, 0, 1, 0],
-                                                                                   [-1, -1, -1, -1])
-    return tf.nn.l2_loss(x) / tf.to_float(tf.size(x)) + tf.nn.l2_loss(y) / tf.to_float(tf.size(y))
+# def total_variation_loss(layer):
+#     shape = tf.shape(layer)
+#     height = shape[1]
+#     width = shape[2]
+#     y = tf.slice(layer, [0, 0, 0, 0], tf.pack([-1, height - 1, -1, -1])) - tf.slice(layer, [0, 1, 0, 0],
+#                                                                                     [-1, -1, -1, -1])
+#     x = tf.slice(layer, [0, 0, 0, 0], tf.pack([-1, -1, width - 1, -1])) - tf.slice(layer, [0, 0, 1, 0],
+#                                                                                    [-1, -1, -1, -1])
+#     return tf.nn.l2_loss(x) / tf.to_float(tf.size(x)) + tf.nn.l2_loss(y) / tf.to_float(tf.size(y))
 
 
 # TODO: Okay to flatten all style images into one gram?
@@ -99,7 +99,19 @@ def main(argv=None):
         style_loss += tf.nn.l2_loss(gram(net[layer]) - style_gram) / tf.to_float(layer_size)
     style_loss = FLAGS.STYLE_WEIGHT * style_loss / (len(style_layers) * len(style_paths))
 
-    tv_loss = FLAGS.TV_WEIGHT * total_variation_loss(initial)
+    # =========
+    shape = tf.shape(initial)
+    height = shape[1]
+    width = shape[2]
+    y = tf.slice(initial, [0, 0, 0, 0], tf.pack([-1, height - 1, -1, -1])) - tf.slice(initial, [0, 1, 0, 0],
+                                                                                      [-1, -1, -1, -1])
+    x = tf.slice(initial, [0, 0, 0, 0], tf.pack([-1, -1, width - 1, -1])) - tf.slice(initial, [0, 0, 1, 0],
+                                                                                     [-1, -1, -1, -1])
+    tv_loss = tf.nn.l2_loss(x) / tf.to_float(tf.size(x)) + tf.nn.l2_loss(y) / tf.to_float(tf.size(y))
+
+    # tv_loss = FLAGS.TV_WEIGHT * total_variation_loss(initial)
+
+    # =========
 
     total_loss = content_loss + style_loss + tv_loss
 
@@ -114,7 +126,10 @@ def main(argv=None):
             _, loss_t, loss_c, loss_s, loss_tv = sess.run([train_op, total_loss, content_loss, style_loss, tv_loss])
             elapsed = time.time() - start_time
             start_time = time.time()
-            print(step, elapsed, 'TL: ', loss_t, ', CL: ', loss_c, ', SL: ', loss_s, ', TVL: ', loss_tv)
+            # print(step, elapsed, 'TL: ', loss_t, ', CL: ', loss_c, ', SL: ', loss_s, ', TVL: ', loss_tv)
+
+            r_x, r_y = sess.run([x, y])
+            print('X=', x, ', Y=', y)
 
         image_t = sess.run(output_image)
         with open('out.png', 'wb') as f:
