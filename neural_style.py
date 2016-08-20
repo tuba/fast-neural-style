@@ -17,7 +17,7 @@ tf.app.flags.DEFINE_string("STYLE_IMAGES", "style.png", "Styles to train")
 tf.app.flags.DEFINE_float("STYLE_SCALE", 1.0, "Scale styles. Higher extracts smaller features")
 tf.app.flags.DEFINE_float("LEARNING_RATE", 10., "Learning rate")
 tf.app.flags.DEFINE_string("CONTENT_IMAGE", "content.jpg", "Content image to use")
-tf.app.flags.DEFINE_boolean("RANDOM_INIT", True, "Start from random noise")
+tf.app.flags.DEFINE_boolean("RANDOM_INIT", False, "Start from random noise")
 tf.app.flags.DEFINE_integer("NUM_ITERATIONS", 1000, "Number of iterations")
 tf.app.flags.DEFINE_integer("IMAGE_SIZE", 256, "Size of output image")
 
