@@ -81,47 +81,45 @@ def main(argv=None):
     style_features_t = get_style_features(style_paths, style_layers)
     *content_features_t, image_t = get_content_features(content_path, content_layers)
 
-    with tf.device('/gpu:0'):
-        image = tf.constant(image_t)
-        random = tf.random_normal(image_t.shape)
-        initial = tf.Variable(random if FLAGS.RANDOM_INIT else image)
+    image = tf.constant(image_t)
+    random = tf.random_normal(image_t.shape)
+    initial = tf.Variable(random if FLAGS.RANDOM_INIT else image)
 
-        net, _ = vgg.net(FLAGS.VGG_PATH, initial)
+    net, _ = vgg.net(FLAGS.VGG_PATH, initial)
 
-        content_loss = 0
-        for content_features, layer in zip(content_features_t, content_layers):
-            layer_size = tf.size(content_features)
-            content_loss += tf.nn.l2_loss(net[layer] - content_features) / tf.to_float(layer_size)
-        content_loss = FLAGS.CONTENT_WEIGHT * content_loss / len(content_layers)
+    content_loss = 0
+    for content_features, layer in zip(content_features_t, content_layers):
+        layer_size = tf.size(content_features)
+        content_loss += tf.nn.l2_loss(net[layer] - content_features) / tf.to_float(layer_size)
+    content_loss = FLAGS.CONTENT_WEIGHT * content_loss / len(content_layers)
 
-        style_loss = 0
-        for style_gram, layer in zip(style_features_t, style_layers):
-            layer_size = tf.size(style_gram)
-            style_loss += tf.nn.l2_loss(gram(net[layer]) - style_gram) / tf.to_float(layer_size)
-        style_loss = FLAGS.STYLE_WEIGHT * style_loss / (len(style_layers) * len(style_paths))
+    style_loss = 0
+    for style_gram, layer in zip(style_features_t, style_layers):
+        layer_size = tf.size(style_gram)
+        style_loss += tf.nn.l2_loss(gram(net[layer]) - style_gram) / tf.to_float(layer_size)
+    style_loss = FLAGS.STYLE_WEIGHT * style_loss / (len(style_layers) * len(style_paths))
 
-        tv_loss = FLAGS.TV_WEIGHT * total_variation_loss(initial)
+    tv_loss = FLAGS.TV_WEIGHT * total_variation_loss(initial)
 
-        total_loss = content_loss + style_loss + tv_loss
+    total_loss = content_loss + style_loss + tv_loss
 
-        train_op = tf.train.AdamOptimizer(FLAGS.LEARNING_RATE).minimize(total_loss)
+    train_op = tf.train.AdamOptimizer(FLAGS.LEARNING_RATE).minimize(total_loss)
 
-        output_image = tf.image.encode_png(tf.saturate_cast(tf.squeeze(initial) + reader.mean_pixel, tf.uint8))
+    output_image = tf.image.encode_png(tf.saturate_cast(tf.squeeze(initial) + reader.mean_pixel, tf.uint8))
 
-        with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
-            sess.run(tf.initialize_all_variables())
+    with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
+        sess.run(tf.initialize_all_variables())
+        start_time = time.time()
+        for step in range(FLAGS.NUM_ITERATIONS):
+            _, loss_t, loss_c, loss_s, loss_tv = sess.run([train_op, total_loss, content_loss, style_loss, tv_loss])
+            elapsed = time.time() - start_time
             start_time = time.time()
-            for step in range(FLAGS.NUM_ITERATIONS):
-                _, loss_t, loss_c, loss_s, loss_tv = sess.run([train_op, total_loss, content_loss, style_loss, tv_loss])
-                elapsed = time.time() - start_time
-                start_time = time.time()
-                print(step, elapsed, 'Total loss: ', loss_t, ', content loss: ', loss_c,
-                      ', style loss: ', style_loss, ', TV loss: ', tv_loss)
+            print(step, elapsed, 'Total loss: ', loss_t, ', content loss: ', loss_c,
+                  ', style loss: ', style_loss, ', TV loss: ', tv_loss)
 
-            image_t = sess.run(output_image)
-            with open('out.png', 'wb') as f:
-                f.write(image_t)
-
+        image_t = sess.run(output_image)
+        with open('out.png', 'wb') as f:
+            f.write(image_t)
 
 if __name__ == '__main__':
     tf.app.run()
