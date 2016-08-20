@@ -112,10 +112,12 @@ def main(argv=None):
             sess.run(tf.initialize_all_variables())
             start_time = time.time()
             for step in range(FLAGS.NUM_ITERATIONS):
-                _, loss_t = sess.run([train_op, total_loss])
+                _, loss_t, loss_c, loss_s, loss_tv = sess.run([train_op, total_loss, content_loss, style_loss, tv_loss])
                 elapsed = time.time() - start_time
                 start_time = time.time()
-                print(step, elapsed, loss_t)
+                print(step, elapsed, 'Total loss: ', loss_t, ', content loss: ', loss_c,
+                      ', style loss: ', style_loss, ', TV loss: ', tv_loss)
+
             image_t = sess.run(output_image)
             with open('out.png', 'wb') as f:
                 f.write(image_t)
