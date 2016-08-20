@@ -135,8 +135,10 @@ def main(argv=None):
             start_time = time.time()
             # print(step, elapsed, 'TL: ', loss_t, ', CL: ', loss_c, ', SL: ', loss_s, ', TVL: ', loss_tv)
 
-            ry1 = sess.run([y1])
-            print('y1=', ry1)
+            ry1, r_i = sess.run([y1, initial])
+
+            print('initial =', r_i)
+            print('y1      =', ry1)
 
         image_t = sess.run(output_image)
         with open('out.png', 'wb') as f:
