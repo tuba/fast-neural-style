@@ -108,7 +108,7 @@ def main(argv=None):
 
         output_image = tf.image.encode_png(tf.saturate_cast(tf.squeeze(initial) + reader.mean_pixel, tf.uint8))
 
-        with tf.Session() as sess:
+        with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
             sess.run(tf.initialize_all_variables())
             start_time = time.time()
             for step in range(FLAGS.NUM_ITERATIONS):
