@@ -104,13 +104,13 @@ def main(argv=None):
     height = shape[1]
     width = shape[2]
 
-    y = tf.slice(initial,
-                 [0, 0, 0, 0],
-                 tf.pack([-1, height - 1, -1, -1])) - tf.slice(initial, [0, 1, 0, 0], [-1, -1, -1, -1])
+    y1 = tf.slice(initial, [0, 0, 0, 0], tf.pack([-1, height - 1, -1, -1]))
+    y2 = tf.slice(initial, [0, 1, 0, 0], [-1, -1, -1, -1])
+    y = y1 - y2
 
-    x = tf.slice(initial,
-                 [0, 0, 0, 0],
-                 tf.pack([-1, -1, width - 1, -1])) - tf.slice(initial, [0, 0, 1, 0], [-1, -1, -1, -1])
+    x1 = tf.slice(initial, [0, 0, 0, 0], tf.pack([-1, -1, width - 1, -1]))
+    x2 = tf.slice(initial, [0, 0, 1, 0], [-1, -1, -1, -1])
+    x = x1 - x2
 
     tv_loss = tf.nn.l2_loss(x) / tf.to_float(tf.size(x)) + tf.nn.l2_loss(y) / tf.to_float(tf.size(y))
 
@@ -133,8 +133,9 @@ def main(argv=None):
             start_time = time.time()
             # print(step, elapsed, 'TL: ', loss_t, ', CL: ', loss_c, ', SL: ', loss_s, ', TVL: ', loss_tv)
 
-            h, w = sess.run([height, width])
-            print('height=', h, ', width=', w)
+            r_x1, r_x2, r_y1, r_y2 = sess.run([x1, x2, y1, y2])
+
+            print('x1=', r_x1, ', x2=', r_x2, ', y1=', r_y1, ', y2=', r_y2)
 
         image_t = sess.run(output_image)
         with open('out.png', 'wb') as f:
