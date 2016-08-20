@@ -110,7 +110,7 @@ def main(argv=None):
     y = y1 - y2
 
     x1_p = tf.pack([-1, -1, width - 1, -1])
-    x1 = tf.slice(initial, [0, 0, 0, 0], y1_p)
+    x1 = tf.slice(initial, [0, 0, 0, 0], x1_p)
     x2 = tf.slice(initial, [0, 0, 1, 0], [-1, -1, -1, -1])
     x = x1 - x2
 
