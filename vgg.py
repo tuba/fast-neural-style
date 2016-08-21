@@ -35,7 +35,7 @@ def net(data_path, input_image):
             kernels, bias = weights[i][0][0][0][0]
             # matconvnet: weights are [width, height, in_channels, out_channels]
             # tensorflow: weights are [height, width, in_channels, out_channels]
-            kernels = np.transpose(kernels, (1, 0, 2, 3))
+            kernels = np.transpose(kernels, [1, 0, 2, 3])
             bias = bias.reshape(-1)
             current = _conv_layer(current, kernels, bias, name=name)
         elif kind == 'relu':
@@ -49,14 +49,12 @@ def net(data_path, input_image):
 
 
 def _conv_layer(input, weights, bias, name=None):
-    conv = tf.nn.conv2d(input, tf.constant(weights), strides=(1, 1, 1, 1),
-            padding='SAME', name=name)
+    conv = tf.nn.conv2d(input, tf.constant(weights), strides=(1, 1, 1, 1), padding='SAME', name=name)
     return tf.nn.bias_add(conv, bias)
 
 
 def _pool_layer(input, name=None):
-    return tf.nn.max_pool(input, ksize=(1, 2, 2, 1), strides=(1, 2, 2, 1),
-            padding='SAME', name=name)
+    return tf.nn.max_pool(input, ksize=(1, 2, 2, 1), strides=(1, 2, 2, 1), padding='SAME', name=name)
 
 
 def preprocess(image, mean_pixel):
