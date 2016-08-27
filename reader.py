@@ -23,9 +23,9 @@ def preprocess(image, size, max_length):
 
 # max_length: Wether size dictates longest or shortest side. Default longest
 def get_image(path, size, max_length=True):
-    png = path.lower().endswith('png')
+    png = path.lower().endswith('jpg')
     img_bytes = tf.read_file(path)
-    image = tf.image.decode_png(img_bytes, channels=3) if png else tf.image.decode_jpeg(img_bytes, channels=3)
+    image = tf.image.decode_jpeg(img_bytes, channels=3)
     return preprocess(image, size, max_length)
 
 def image(n, size, path, epochs=2, shuffle=True, crop=True):
@@ -33,12 +33,12 @@ def image(n, size, path, epochs=2, shuffle=True, crop=True):
     if not shuffle:
         filenames = sorted(filenames)
 
-    png = filenames[0].lower().endswith('png') # If first file is a png, assume they all are
+    png = filenames[0].lower().endswith('jpg') # If first file is a png, assume they all are
 
     filename_queue = tf.train.string_input_producer(filenames, num_epochs=epochs, shuffle=shuffle)
     reader = tf.WholeFileReader()
     _, img_bytes = reader.read(filename_queue)
-    image = tf.image.decode_png(img_bytes, channels=3) if png else tf.image.decode_jpeg(img_bytes, channels=3)
+    image = tf.image.decode_jpeg(img_bytes, channels=3)
 
     processed_image = preprocess(image, size, False)
     if not crop:

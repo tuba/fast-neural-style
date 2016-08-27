@@ -69,7 +69,7 @@ def main(argv=None):
             FLAGS.BATCH_SIZE,
             FLAGS.IMAGE_SIZE,
             FLAGS.CONTENT_IMAGES_PATH,
-            epochs=1,
+            epochs=10,
             shuffle=False,
             crop=False)
         generated_images = model.net(content_images / 255.)
@@ -84,6 +84,7 @@ def main(argv=None):
             print('Using model from {}'.format(file))
             saver = tf.train.Saver()
             saver.restore(sess, file)
+            sess.run(tf.initialize_local_variables())
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(coord=coord)
             i = 0
@@ -116,6 +117,8 @@ def main(argv=None):
 
     style_features_t = get_style_features(style_paths, style_layers)
 
+    print('Batch size: ', FLAGS.BATCH_SIZE, ', Image size: ', FLAGS.IMAGE_SIZE,
+          ', train patch: ', FLAGS.TRAIN_IMAGES_PATH)
     images = reader.image(FLAGS.BATCH_SIZE, FLAGS.IMAGE_SIZE, FLAGS.TRAIN_IMAGES_PATH)
     generated = model.net(images / 255.)
 
@@ -149,10 +152,12 @@ def main(argv=None):
         file = tf.train.latest_checkpoint(FLAGS.MODEL_PATH)
         if file:
             print('Restoring model from {}'.format(file))
+            sess.run(tf.initialize_local_variables())
             saver.restore(sess, file)
         else:
             print('New model initilized')
-            sess.run(tf.initialize_all_variables())
+            init_op = tf.group(tf.initialize_all_variables(), tf.initialize_local_variables())
+            sess.run(init_op)
 
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)

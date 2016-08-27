@@ -20,6 +20,7 @@ tf.app.flags.DEFINE_float("LEARNING_RATE", 10., "Learning rate")
 tf.app.flags.DEFINE_string("CONTENT_IMAGE", "content.png", "Content image to use")
 tf.app.flags.DEFINE_boolean("RANDOM_INIT", False, "Start from random noise")
 tf.app.flags.DEFINE_integer("NUM_ITERATIONS", 1000, "Number of iterations")
+
 tf.app.flags.DEFINE_integer("IMAGE_SIZE", 256, "Size of output image")
 
 FLAGS = tf.app.flags.FLAGS
@@ -31,9 +32,9 @@ FLAGS = tf.app.flags.FLAGS
 # width = shape[2]
 # y = tf.slice(layer, [0, 0, 0, 0], tf.pack([-1, height - 1, -1, -1])) - tf.slice(layer, [0, 1, 0, 0],
 # [-1, -1, -1, -1])
-#     x = tf.slice(layer, [0, 0, 0, 0], tf.pack([-1, -1, width - 1, -1])) - tf.slice(layer, [0, 0, 1, 0],
-#                                                                                    [-1, -1, -1, -1])
-#     return tf.nn.l2_loss(x) / tf.to_float(tf.size(x)) + tf.nn.l2_loss(y) / tf.to_float(tf.size(y))
+# x = tf.slice(layer, [0, 0, 0, 0], tf.pack([-1, -1, width - 1, -1])) - tf.slice(layer, [0, 0, 1, 0],
+# [-1, -1, -1, -1])
+# return tf.nn.l2_loss(x) / tf.to_float(tf.size(x)) + tf.nn.l2_loss(y) / tf.to_float(tf.size(y))
 
 
 # TODO: Okay to flatten all style images into one gram?
@@ -99,7 +100,6 @@ def main(argv=None):
             print(layer)
             layer_size = tf.size(content_features)
             content_loss += tf.nn.l2_loss(net[layer] - content_features) / tf.to_float(layer_size)
-
         content_loss = FLAGS.CONTENT_WEIGHT * content_loss / len(content_layers)
 
         style_loss = 0
@@ -116,20 +116,20 @@ def main(argv=None):
         # y1_p = tf.pack([-1, height - 1, -1, -1])
         y1 = tf.slice(initial, [0, 0, 0, 0], [-1, height - 1, -1, -1])
         y2 = tf.slice(initial, [0, 1, 0, 0], [-1, -1, -1, -1])
-        y = y1 - y2
+        y = tf.sub(y1, y2)
 
         # x1_p = tf.pack([-1, -1, width - 1, -1])
         x1 = tf.slice(initial, [0, 0, 0, 0], [-1, -1, width - 1, -1])
         x2 = tf.slice(initial, [0, 0, 1, 0], [-1, -1, -1, -1])
-        x = x1 - x2
+        x = tf.sub(x1, x2)
 
         tv11 = tf.nn.l2_loss(x)
         tv12 = tf.to_float(tf.size(x))
         tv21 = tf.nn.l2_loss(y)
         tv22 = tf.to_float(tf.size(y))
-        tv_loss = tv11 / tv12 + tv21 / tv22
+        tv_loss = tf.add(tf.div(tv11, tv12), tf.div(tv21, tv22))
 
-        tv_loss = FLAGS.TV_WEIGHT * tv_loss
+        # tv_loss = FLAGS.TV_WEIGHT * tv_loss
         # tv_loss = FLAGS.TV_WEIGHT * total_variation_loss(initial)
 
         # =========
@@ -137,36 +137,29 @@ def main(argv=None):
         total_loss = content_loss + style_loss + tv_loss
 
         train_op = tf.train.AdamOptimizer(FLAGS.LEARNING_RATE).minimize(total_loss)
-        # train_op = tf.train.GradientDescentOptimizer(FLAGS.LEARNING_RATE).minimize(total_loss)
+        # train_op = tf.train.GradientDescentOptimizer(FLAGS.LEARNING_RATE)s.minimize(total_loss)
 
         with tf.device('/cpu:0'):
             output_image = tf.image.encode_png(tf.saturate_cast(tf.squeeze(initial) + reader.mean_pixel, tf.uint8))
 
         with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
             sess.run(tf.initialize_all_variables())
-            start_time = time.time()
             for step in range(FLAGS.NUM_ITERATIONS):
-                _, loss_t, loss_c, loss_s, loss_tv, loss_tv11, loss_tv12, loss_tv21, loss_tv22, rx, ri = sess.run([train_op,
-                                                                                                           total_loss,
-                                                                                                           content_loss,
-                                                                                                           style_loss,
-                                                                                                           tv_loss,
-                                                                                                           tv11,
-                                                                                                           tv12,
-                                                                                                           tv21,
-                                                                                                           tv22,
-                                                                                                           x,
-                                                                                                           initial])
+                start_time = time.time()
+                _, loss_t, loss_c, loss_s = sess.run([
+                    train_op,
+                    total_loss,
+                    content_loss,
+                    style_loss])
                 elapsed = time.time() - start_time
-                print(step, elapsed, 'TL: ', loss_t, ', CL: ', loss_c, ', SL: ', loss_s, ', TVL: ', loss_tv)
-                print('TV_11: ', loss_tv11, ', TV_12: ', loss_tv12)
-                if np.isnan(ri).any():
-                    print('Initial contains NaN. Exit...')
-                    exit(0)
-                if np.isnan(rx).any():
-                    print('X contains NaN. Exit...')
-                    exit(0)
-                # print('TV_21: ', loss_tv21, ', TV_22: ', loss_tv22)
+                print(step, elapsed, 'TL: ', loss_t, ', CL: ', loss_c, ', SL: ', loss_s)
+
+                # if np.isnan(ri).any():
+                #     print('Initial contains NaN. Exit...')
+                #     exit(0)
+                # if np.isnan(rx).any():
+                #     print('X contains NaN. Exit...')
+                #     exit(0)
 
             image_t = sess.run(output_image)
             with open('out.png', 'wb') as f:
