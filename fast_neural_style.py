@@ -5,6 +5,8 @@ import tensorflow as tf
 import vgg
 import model
 import reader
+from os import listdir
+from os.path import isfile, join
 
 tf.app.flags.DEFINE_integer("CONTENT_WEIGHT", 5e0, "Weight for content features loss")
 tf.app.flags.DEFINE_integer("STYLE_WEIGHT", 1e2, "Weight for style features loss")
@@ -63,51 +65,68 @@ def get_style_features(style_paths, style_layers):
             return sess.run(features)
 
 
-def main(argv=None):
-    if FLAGS.CONTENT_IMAGES_PATH:
+def generate():
+    with tf.Session() as sess:
+        # path = FLAGS.CONTENT_IMAGES_PATH
+        # filenames = [join(path, f) for f in listdir(path) if isfile(join(path, f))]
+        # filenames = sorted(filenames)
+
+
+        # WTF? why string producer need epoch numbers?
+        # print(filename_queue)
+        # result = sess.run(filename_queue)
+        # print(result)
+        # exit(0)
+
         content_images = reader.image(
             FLAGS.BATCH_SIZE,
             FLAGS.IMAGE_SIZE,
             FLAGS.CONTENT_IMAGES_PATH,
-            epochs=10,
+            epochs=1,
             shuffle=False,
             crop=False)
+
+        print(content_images)
+
         generated_images = model.net(content_images / 255.)
-
         output_format = tf.saturate_cast(generated_images + reader.mean_pixel, tf.uint8)
-        with tf.Session() as sess:
-            file = tf.train.latest_checkpoint(FLAGS.MODEL_PATH)
-            if not file:
-                print('Could not find trained model in {}'.format(FLAGS.MODEL_PATH))
-                return
 
-            print('Using model from {}'.format(file))
-            saver = tf.train.Saver()
-            saver.restore(sess, file)
-            sess.run(tf.initialize_local_variables())
-            coord = tf.train.Coordinator()
-            threads = tf.train.start_queue_runners(coord=coord)
-            i = 0
-            start_time = time.time()
-            try:
-                while not coord.should_stop():
-                    print(i)
-                    images_t = sess.run(output_format)
-                    elapsed = time.time() - start_time
-                    start_time = time.time()
-                    print('Time for one batch: {}'.format(elapsed))
+        file = tf.train.latest_checkpoint(FLAGS.MODEL_PATH)
+        if not file:
+            print('Could not find trained model in %s' % FLAGS.MODEL_PATH)
+            return
 
-                    for raw_image in images_t:
-                        i += 1
-                        misc.imsave('out{0:04d}.png'.format(i), raw_image)
-            except tf.errors.OutOfRangeError:
-                print('Done training -- epoch limit reached')
-            finally:
-                coord.request_stop()
+        print('Using model from %s' % file)
+        saver = tf.train.Saver()
+        saver.restore(sess, file)
 
-            coord.join(threads)
-        return
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(coord=coord)
+        i = 0
+        start_time = time.time()
 
+        try:
+            while not coord.should_stop():
+                print(i)
+                images_t = sess.run(output_format)
+                elapsed = time.time() - start_time
+                start_time = time.time()
+                print('Time for one batch: {}'.format(elapsed))
+
+                for raw_image in images_t:
+                    i += 1
+                    misc.imsave('out{0:04d}.png'.format(i), raw_image)
+
+        except tf.errors.OutOfRangeError:
+            print('Done training -- epoch limit reached')
+
+        finally:
+            coord.request_stop()
+
+        coord.join(threads)
+
+
+def learn():
     if not os.path.exists(FLAGS.MODEL_PATH):
         os.makedirs(FLAGS.MODEL_PATH)
 
@@ -117,8 +136,10 @@ def main(argv=None):
 
     style_features_t = get_style_features(style_paths, style_layers)
 
-    print('Batch size: ', FLAGS.BATCH_SIZE, ', Image size: ', FLAGS.IMAGE_SIZE,
+    print('Batch size: ', FLAGS.BATCH_SIZE,
+          ', Image size: ', FLAGS.IMAGE_SIZE,
           ', train patch: ', FLAGS.TRAIN_IMAGES_PATH)
+
     images = reader.image(FLAGS.BATCH_SIZE, FLAGS.IMAGE_SIZE, FLAGS.TRAIN_IMAGES_PATH)
     generated = model.net(images / 255.)
 
@@ -180,6 +201,14 @@ def main(argv=None):
             coord.request_stop()
 
         coord.join(threads)
+
+
+def main(argv=None):
+    if FLAGS.CONTENT_IMAGES_PATH:
+        generate()
+        return
+
+    learn()
 
 
 if __name__ == '__main__':

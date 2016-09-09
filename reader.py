@@ -2,7 +2,8 @@ from os import listdir
 from os.path import isfile, join
 import tensorflow as tf
 
-mean_pixel = [123.68, 116.779, 103.939] # ImageNet average from VGG ..
+mean_pixel = [123.68, 116.779, 103.939]  # ImageNet average from VGG ..
+
 
 def preprocess(image, size, max_length):
     shape = tf.shape(image)
@@ -21,32 +22,44 @@ def preprocess(image, size, max_length):
     normalised_image = resized_image - mean_pixel
     return normalised_image
 
+
 # max_length: Wether size dictates longest or shortest side. Default longest
 def get_image(path, size, max_length=True):
-    png = path.lower().endswith('jpg')
+    png = path.lower().endswith('png')
     img_bytes = tf.read_file(path)
-    image = tf.image.decode_jpeg(img_bytes, channels=3)
+
+    if png:
+        image = tf.image.decode_png(img_bytes, channels=3)
+    else:
+        image = tf.image.decode_jpeg(img_bytes, channels=3)
+
     return preprocess(image, size, max_length)
 
-def image(n, size, path, epochs=2, shuffle=True, crop=True):
+
+def isPng(path):
     filenames = [join(path, f) for f in listdir(path) if isfile(join(path, f))]
-    if not shuffle:
-        filenames = sorted(filenames)
+    return filenames[0].lower().endswith('png')
 
-    png = filenames[0].lower().endswith('jpg') # If first file is a png, assume they all are
 
-    filename_queue = tf.train.string_input_producer(filenames, num_epochs=epochs, shuffle=shuffle)
+def image(n, size, path, epochs=2, shuffle=True, crop=True):
+    images = tf.train.match_filenames_once(path + '/*')
+    # WTF? why string producer need epoch numbers?
+    filename_queue = tf.train.string_input_producer(images, num_epochs=epochs, shuffle=shuffle)
     reader = tf.WholeFileReader()
     _, img_bytes = reader.read(filename_queue)
-    image = tf.image.decode_jpeg(img_bytes, channels=3)
+
+    if isPng(path):
+        image = tf.image.decode_png(img_bytes, channels=3)
+    else:
+        image = tf.image.decode_jpeg(img_bytes, channels=3)
 
     processed_image = preprocess(image, size, False)
     if not crop:
-        return tf.train.batch([processed_image], n, dynamic_pad=True)
+        result = tf.train.batch([processed_image], n, dynamic_pad=True)
+        return result
 
-    cropped_image = tf.slice(processed_image, [0,0,0], [size, size, 3])
+    cropped_image = tf.slice(processed_image, [0, 0, 0], [size, size, 3])
     cropped_image.set_shape((size, size, 3))
 
     images = tf.train.batch([cropped_image], n)
     return images
-
